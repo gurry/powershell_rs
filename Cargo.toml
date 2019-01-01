@@ -5,3 +5,4 @@ authors = ["Gurinder Singh <gurinder.singh@1e.com>"]
 edition = "2018"
 
 [dependencies]
+failure = "0.1.4"
