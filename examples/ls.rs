@@ -8,6 +8,6 @@ fn main() {
             println!("Stdout output:");
             println!("{}", output.stdout());
         },
-        Err(e) => println!("ls failed with error: {}", e),
+        Err(e) => println!("Failed with error: {}", e),
     }
 }
