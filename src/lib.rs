@@ -19,7 +19,7 @@ impl Ps {
             } else {
                 "<unknown>".to_owned()
             };
-            return Err(PsError { msg: format!("Reading from version table failed with exit code: {}", code_str) });
+            return Err(PsError { msg: format!("Reading from version table failed with exit code {}", code_str) });
         }
 
         let version = to_string(&output.stdout).parse::<PsVersion>()?;
