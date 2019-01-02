@@ -26,9 +26,21 @@ impl Ps {
         Ok(version)
     }
 
-    fn invoke_ps(command_arg: &str) -> Result<process::Output, PsError> {
-        let commandline = format!("-NoProfile -NonInteractive -NoLogo -ExecutionPolicy Bypass -Command {}", command_arg);
-        let output = process::Command::new(POWERSHELL_EXE).arg(commandline).output()
+    fn invoke_ps(command: &str) -> Result<process::Output, PsError> {
+        let mut ps_process = process::Command::new(POWERSHELL_EXE);
+        let ps_process = ps_process
+            .arg("-NoProfile")
+            .arg("-NonInteractive")
+            .arg("-NoLogo")
+            .arg("-ExecutionPolicy ")
+            .arg("Bypass")
+            .arg("-Command");
+
+        for part in command.split_whitespace() {
+            ps_process.arg(part);
+        }
+        
+        let output = ps_process.output()
             .map_err(|e| PsError { msg: format!("Error while spawning {}: {}", POWERSHELL_EXE, e) })?;
         Ok(output)
     }
