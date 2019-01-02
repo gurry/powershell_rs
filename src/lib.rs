@@ -5,12 +5,12 @@ const POWERSHELL_EXE: &str = "powershell.exe";
 pub struct Ps;
 
 impl Ps {
-    pub fn execute(&self, command: &str) -> Result<PsOutput, PsError> {
+    pub fn execute(command: &str) -> Result<PsOutput, PsError> {
         let output = Self::invoke_ps(command)?;
         Ok(PsOutput{ inner: output })
     }
 
-    pub fn version(&self) -> Result<PsVersion, PsError> {
+    pub fn version() -> Result<PsVersion, PsError> {
         let output = Self::invoke_ps("$PSVersionTable.PSVersion.ToString()")?;
 
         if !output.status.success() {
