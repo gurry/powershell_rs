@@ -93,6 +93,7 @@ impl str::FromStr for PsVersion {
     type Err = PsError;
     fn from_str(version_str: &str) -> Result<Self, Self::Err> {
         // TODO: Optimize this. Avoid allocations if we can.
+        let version_str = version_str.trim();
         let parts = version_str.split('.').collect::<Vec<_>>();
         let error = || PsError { msg: format!("Cannot parse '{}' into PowerShell version", version_str) };
 
