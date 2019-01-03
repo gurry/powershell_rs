@@ -42,6 +42,7 @@ impl Ps {
         
         let output = ps_process.output()
             .map_err(|e| PsError { msg: format!("Error while spawning {}: {}", POWERSHELL_EXE, e) })?;
+        // TODO: add a way to capture error printed by command and return it as Err from here.
         Ok(output)
     }
 }
