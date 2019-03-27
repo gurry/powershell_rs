@@ -91,7 +91,7 @@ impl PsProcess {
 
     pub fn kill(&mut self) -> Result<(), PsError> {
         self.0.kill()
-            .map_err(|e| PsError { msg: format!("Failed to kill powershell prcess: {}", e) })
+            .map_err(|e| PsError { msg: format!("Failed to kill powershell process: {}", e) })
     }
 
     pub fn id(&self) -> u32 {
