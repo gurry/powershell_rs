@@ -77,16 +77,16 @@ impl PsCommand {
 pub struct PsProcess(process::Child);
 
 impl PsProcess {
-    pub fn stdin(&self) -> Option<&Stdin> {
-        self.0.stdin.as_ref()
+    pub fn stdin(self) -> Option<Stdin> {
+        self.0.stdin
     }
 
-    pub fn stdout(&self) -> Option<&Stdout> {
-        self.0.stdout.as_ref()
+    pub fn stdout(self) -> Option<Stdout> {
+        self.0.stdout
     }
 
-    pub fn stderr(&self) -> Option<&Stderr> {
-        self.0.stderr.as_ref()
+    pub fn stderr(self) -> Option<Stderr> {
+        self.0.stderr
     }
 
     pub fn kill(&mut self) -> Result<(), PsError> {
