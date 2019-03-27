@@ -58,18 +58,19 @@ impl PsCommand {
     }
 
     pub fn spawn(&mut self) -> Result<PsProcess, PsError> {
-        let child = self.command.spawn().map_err(|e| PsError{ msg: format!("Failed to spawn: {}", e) })?;
+        let child = self.command.spawn()
+            .map_err(|e| PsError{ msg: format!("Failed to spawn: {}", e) })?;
         Ok(PsProcess(child))
     }
 
     pub fn output(&mut self) -> Result<Output, PsError> {
-        let output = self.command.output().map_err(|e| PsError{ msg: format!("Failed to spawn: {}", e) })?;
-        Ok(output)
+        self.command.output()
+            .map_err(|e| PsError{ msg: format!("Failed to spawn: {}", e) })
     }
 
     pub fn status(&mut self) -> Result<ExitStatus, PsError> {
-        let status = self.command.status().map_err(|e| PsError{ msg: format!("Failed to spawn: {}", e) })?;
-        Ok(status)
+        self.command.status()
+            .map_err(|e| PsError{ msg: format!("Failed to spawn: {}", e) })
     }
 }
 
