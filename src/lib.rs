@@ -1,73 +1,134 @@
 use std::{fmt, process, str};
 use failure::Fail;
 
+pub use std::process::{
+    Stdio,
+    ExitStatus,
+    Output,
+    ChildStdin as Stdin,
+    ChildStdout as Stdout,
+    ChildStderr as Stderr,
+};
+
+
+// TODO: a lot of this stuff needs rethought
+// For example which of the existing types in
+// std::process we should re-export and which
+// ones we should wrap in our own types
+
 const POWERSHELL_EXE: &str = "powershell.exe";
-pub struct Ps;
 
-impl Ps {
-    pub fn execute(command: &str) -> Result<PsOutput, PsError> {
-        let output = Self::invoke_ps(command)?;
-        Ok(PsOutput{ inner: output })
+pub struct PsCommand {
+    command: process::Command,
+}
+
+impl PsCommand {
+    pub fn new<C: AsRef<str>>(command_str: C) -> Self {
+        Self { command: Self::create_command(command_str.as_ref()) }
     }
 
-    pub fn version() -> Result<PsVersion, PsError> {
-        let output = Self::invoke_ps("$PSVersionTable.PSVersion.ToString()")?;
+    fn create_command(command_str: &str) -> process::Command {
+        let mut command = process::Command::new(POWERSHELL_EXE);
+        command.arg("-NoProfile").arg("-NonInteractive").arg("-NoLogo").arg("-ExecutionPolicy").arg("Bypass").arg("-Command");
 
-        if !output.status.success() {
-            let code_str = if output.status.code().is_some() {
-                output.status.code().unwrap().to_string()
-            } else {
-                "<unknown>".to_owned()
-            };
-            return Err(PsError { msg: format!("Reading from version table failed with exit code {}", code_str) });
+        for part in command_str.split_whitespace() {
+            // TODO: here ensure that none of the 'part's are
+            // match or is in conflit with the standard args
+            // like "-NoProfile" we've specified above.
+            // If any of them is, then return failure 
+            command.arg(part);
         }
 
-        let version = to_string(&output.stdout).parse::<PsVersion>()?;
-        Ok(version)
+        command
     }
 
-    fn invoke_ps(command: &str) -> Result<process::Output, PsError> {
-        let mut ps_process = process::Command::new(POWERSHELL_EXE);
-        let ps_process = ps_process
-            .arg("-NoProfile")
-            .arg("-NonInteractive")
-            .arg("-NoLogo")
-            .arg("-ExecutionPolicy ")
-            .arg("Bypass")
-            .arg("-Command");
+    pub fn stdin<T: Into<Stdio>>(&mut self, cfg: T) -> &mut Self {
+        self.command.stdin(cfg);
+        self
+    }
 
-        for part in command.split_whitespace() {
-            ps_process.arg(part);
-        }
-        
-        let output = ps_process.output()
-            .map_err(|e| PsError { msg: format!("Error while spawning {}: {}", POWERSHELL_EXE, e) })?;
-        // TODO: add a way to capture error printed by command and return it as Err from here.
+    pub fn stdout<T: Into<Stdio>>(&mut self, cfg: T) -> &mut Self {
+        self.command.stdout(cfg);
+        self
+    }
+
+    pub fn stderr<T: Into<Stdio>>(&mut self, cfg: T) -> &mut Self {
+        self.command.stderr(cfg);
+        self
+    }
+
+    pub fn spawn(&mut self) -> Result<PsProcess, PsError> {
+        let child = self.command.spawn().map_err(|e| PsError{ msg: format!("Failed to spawn: {}", e) })?;
+        Ok(PsProcess(child))
+    }
+
+    pub fn output(&mut self) -> Result<Output, PsError> {
+        let output = self.command.output().map_err(|e| PsError{ msg: format!("Failed to spawn: {}", e) })?;
         Ok(output)
     }
+
+    pub fn status(&mut self) -> Result<ExitStatus, PsError> {
+        let status = self.command.status().map_err(|e| PsError{ msg: format!("Failed to spawn: {}", e) })?;
+        Ok(status)
+    }
 }
 
-// TODO: The current shape of PsOutput may not be best
-// we need to think of how we'll handle the case when a 
-// command spits out a large stream of data. A String
-// type won't do in that case. Fix this.
-#[derive(Debug)]
-pub struct PsOutput {
-    inner: process::Output,
+pub struct PsProcess(process::Child);
+
+impl PsProcess {
+    pub fn stdin(&self) -> Option<&Stdin> {
+        self.0.stdin.as_ref()
+    }
+
+    pub fn stdout(&self) -> Option<&Stdout> {
+        self.0.stdout.as_ref()
+    }
+
+    pub fn stderr(&self) -> Option<&Stderr> {
+        self.0.stderr.as_ref()
+    }
+
+    pub fn kill(&mut self) -> Result<(), PsError> {
+        self.0.kill()
+            .map_err(|e| PsError { msg: format!("Failed to kill powershell prcess: {}", e) })
+    }
+
+    pub fn id(&self) -> u32 {
+        self.0.id()
+    }
+
+    pub fn wait(&mut self) -> Result<ExitStatus, PsError> {
+         self.0.wait()
+            .map_err(|e| PsError { msg: format!("Error occured while waiting: {}", e) })
+    }
+
+    pub fn try_wait(&mut self) -> Result<Option<ExitStatus>, PsError> {
+         self.0.try_wait()
+            .map_err(|e| PsError { msg: format!("Error occured while waiting: {}", e) })
+    }
+
+    pub fn wait_with_output(self) -> Result<Output, PsError> {
+         self.0.wait_with_output()
+            .map_err(|e| PsError { msg: format!("Error occured while waiting: {}", e) })
+    }
 }
 
-impl PsOutput {
-    pub fn stdout(&self) -> String {
-        to_string(&self.inner.stdout)
+pub fn ps_version() -> Result<PsVersion, PsError> {
+    let output = PsCommand::new("$PSVersionTable.PSVersion.ToString()")
+        .output()
+        .map_err(|e| PsError { msg: format!("Failed to spawn powershell prcess to read from the version table: {}", e) })?;
+
+    if !output.status.success() {
+        let code_str = if output.status.code().is_some() {
+            output.status.code().unwrap().to_string()
+        } else {
+            "<unknown>".to_owned()
+        };
+        return Err(PsError { msg: format!("Reading from version table failed with exit code {}", code_str) });
     }
 
-    pub fn stderr(&self) -> String {
-        to_string(&self.inner.stderr)
-    }
-    
-    pub fn exit_code(&self) -> Option<i32> {
-        self.inner.status.code()
-    }
+    let version = to_string(&output.stdout).parse::<PsVersion>()?;
+    Ok(version)
 }
 
 // TODO: We need to do proper design of error types. Just this one type is not enough
@@ -120,5 +181,3 @@ impl fmt::Display for PsVersion {
 fn to_string(bytes: &[u8]) -> String {
     String::from_utf8_lossy(bytes).into_owned()
 }
-
-// TODO: Add unit tests

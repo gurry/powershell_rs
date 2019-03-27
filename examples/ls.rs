@@ -1,17 +1,20 @@
-use powershell_rs::Ps;
+use powershell_rs::{PsCommand, ps_version};
 
 fn main() {
-    match Ps::version() {
+    match ps_version() {
         Ok(version) => println!("Powershell version {}", version),
         Err(e) => println!("Failed to get version. Error: {}", e),
     };
 
     println!("Running 'ls'...");
-    match Ps::execute("ls") {
+    match PsCommand::new("ls").output() {
         Ok(output) => {
-            println!("Exit code: {:?}", output.exit_code());
+            if let Some(code) = output.status.code() {
+                println!("Exit code: {:?}", code)
+            }
+            
             println!("Stdout output:");
-            println!("{}", output.stdout());
+            println!("{}", String::from_utf8_lossy(output.stdout.as_slice()));
         },
         Err(e) => println!("Failed with error: {}", e),
     }
