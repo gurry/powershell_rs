@@ -117,7 +117,7 @@ impl PsProcess {
 pub fn ps_version() -> Result<PsVersion, PsError> {
     let output = PsCommand::new("$PSVersionTable.PSVersion.ToString()")
         .output()
-        .map_err(|e| PsError { msg: format!("Failed to spawn powershell prcess to read from the version table: {}", e) })?;
+        .map_err(|e| PsError { msg: format!("Failed to spawn powershell process to read from the version table: {}", e) })?;
 
     if !output.status.success() {
         let code_str = if output.status.code().is_some() {
