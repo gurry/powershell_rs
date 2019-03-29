@@ -16,6 +16,8 @@ pub use std::process::{
 // std::process we should re-export and which
 // ones we should wrap in our own types
 
+// TODO: add logging using the right logging crate
+
 const POWERSHELL_EXE: &str = "powershell.exe";
 
 pub struct PsCommand {
