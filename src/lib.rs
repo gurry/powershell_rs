@@ -91,7 +91,7 @@ impl PsProcess {
 
     pub fn kill(&mut self) -> Result<(), PsError> {
         self.0.kill()
-            .map_err(|e| PsError { msg: format!("Failed to kill powershell process: {}", e) })
+            .map_err(|e| PsError { msg: e.to_string() })
     }
 
     pub fn id(&self) -> u32 {
@@ -100,17 +100,17 @@ impl PsProcess {
 
     pub fn wait(&mut self) -> Result<ExitStatus, PsError> {
          self.0.wait()
-            .map_err(|e| PsError { msg: format!("Error occured while waiting: {}", e) })
+            .map_err(|e| PsError { msg: e.to_string() })
     }
 
     pub fn try_wait(&mut self) -> Result<Option<ExitStatus>, PsError> {
          self.0.try_wait()
-            .map_err(|e| PsError { msg: format!("Error occured while waiting: {}", e) })
+            .map_err(|e| PsError { msg: e.to_string() })
     }
 
     pub fn wait_with_output(self) -> Result<Output, PsError> {
          self.0.wait_with_output()
-            .map_err(|e| PsError { msg: format!("Error occured while waiting: {}", e) })
+            .map_err(|e| PsError { msg: e.to_string() })
     }
 }
 
