@@ -1,4 +1,4 @@
-use std::{fmt, process, str};
+use std::{fmt, process, str, path::Path};
 use failure::Fail;
 
 pub use std::process::{
@@ -29,19 +29,40 @@ impl PsCommand {
         Self { command: Self::create_command(command_str.as_ref()) }
     }
 
+    pub fn from_script<'a, P: AsRef<Path>, S: AsRef<str>, A: IntoIterator<Item=S>>(script_path: P, args: A) -> Result<Self, PsError> {
+        Ok(Self { command: Self::create_script_command(script_path.as_ref(), args.into_iter())? })
+    }
+
     fn create_command(command_str: &str) -> process::Command {
         let mut command = process::Command::new(POWERSHELL_EXE);
         command.arg("-NoProfile").arg("-NonInteractive").arg("-NoLogo").arg("-ExecutionPolicy").arg("Bypass").arg("-Command");
 
         for part in command_str.split_whitespace() {
             // TODO: here ensure that none of the 'part's are
-            // match or is in conflit with the standard args
+            // matching or is in conflit with the standard args
             // like "-NoProfile" we've specified above.
             // If any of them is, then return failure 
             command.arg(part);
         }
 
         command
+    }
+
+    fn create_script_command<'a, S: AsRef<str>, A: IntoIterator<Item=S>>(script_path: &Path, args: A) -> Result<process::Command, PsError> {
+        let script_path = script_path.to_str().ok_or_else(|| PsError{ msg: format!("Invalid path: {}", script_path.display()) })?;
+        let mut command = process::Command::new(POWERSHELL_EXE);
+        command.arg("-NoProfile").arg("-NonInteractive").arg("-NoLogo").arg("-ExecutionPolicy").arg("Bypass").arg("-File").arg(script_path);
+
+        for arg in args {
+            // TODO: enclose arg in quotes incase it has embedded whitespace
+            // TODO: here ensure that none of the 'part's are
+            // matching or is in conflit with the standard args
+            // like "-NoProfile" we've specified above.
+            // If any of them is, then return failure 
+            command.arg(arg.as_ref());
+        }
+
+        Ok(command)
     }
 
     pub fn stdin<T: Into<Stdio>>(&mut self, cfg: T) -> &mut Self {
